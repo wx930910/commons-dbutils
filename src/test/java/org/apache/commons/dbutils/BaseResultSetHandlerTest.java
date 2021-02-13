@@ -23,49 +23,51 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import org.mockito.Mockito;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.Mockito.*;
+import java.util.Map.Entry;
+import org.apache.commons.dbutils.BaseResultSetHandler;
+import java.lang.Object;
+import java.lang.String;
 
 public final class BaseResultSetHandlerTest extends BaseTestCase {
 
-    @Test
-    public void handleWithoutExplicitResultSetInvocation() throws Exception {
-        final Collection<Map<String, Object>> result = new ToMapCollectionHandler().handle(createMockResultSet());
+	public static BaseResultSetHandler<Collection<Map<String, Object>>> mockBaseResultSetHandler1() throws Exception {
+		BaseResultSetHandler<Collection<Map<String, Object>>> mockInstance = spy(BaseResultSetHandler.class);
+		doAnswer((stubInvo) -> {
+			final Collection<Map<String, Object>> result = new LinkedList<>();
+			while (mockInstance.next()) {
+				final Map<String, Object> current = new HashMap<>();
+				for (int i = 1; i <= mockInstance.getMetaData().getColumnCount(); i++) {
+					current.put(mockInstance.getMetaData().getColumnName(i), mockInstance.getObject(i));
+				}
+				result.add(current);
+			}
+			return result;
+		}).when(mockInstance).handle();
+		return mockInstance;
+	}
 
-        assertFalse(result.isEmpty());
+	@Test
+	public void handleWithoutExplicitResultSetInvocation() throws Exception {
+		final Collection<Map<String, Object>> result = BaseResultSetHandlerTest.mockBaseResultSetHandler1()
+				.handle(createMockResultSet());
 
-        for (final Map<String, Object> current : result) {
-            assertTrue(current.containsKey("one"));
-            assertTrue(current.containsKey("two"));
-            assertTrue(current.containsKey("three"));
-            assertTrue(current.containsKey("notInBean"));
-            assertTrue(current.containsKey("intTest"));
-            assertTrue(current.containsKey("integerTest"));
-            assertTrue(current.containsKey("nullObjectTest"));
-            assertTrue(current.containsKey("nullPrimitiveTest"));
-            assertTrue(current.containsKey("notDate"));
-            assertTrue(current.containsKey("columnProcessorDoubleTest"));
-        }
-    }
+		assertFalse(result.isEmpty());
 
-    private static final class ToMapCollectionHandler
-        extends BaseResultSetHandler<Collection<Map<String, Object>>> {
-
-        @Override
-        protected Collection<Map<String, Object>> handle() throws SQLException {
-            final Collection<Map<String, Object>> result = new LinkedList<>();
-
-            while (next()) {
-                final Map<String, Object> current = new HashMap<>();
-
-                for (int i = 1; i <= getMetaData().getColumnCount(); i++) {
-                    current.put(getMetaData().getColumnName(i), getObject(i));
-                }
-
-                result.add(current);
-            }
-
-            return result;
-        }
-
-    }
+		for (final Map<String, Object> current : result) {
+			assertTrue(current.containsKey("one"));
+			assertTrue(current.containsKey("two"));
+			assertTrue(current.containsKey("three"));
+			assertTrue(current.containsKey("notInBean"));
+			assertTrue(current.containsKey("intTest"));
+			assertTrue(current.containsKey("integerTest"));
+			assertTrue(current.containsKey("nullObjectTest"));
+			assertTrue(current.containsKey("nullPrimitiveTest"));
+			assertTrue(current.containsKey("notDate"));
+			assertTrue(current.containsKey("columnProcessorDoubleTest"));
+		}
+	}
 
 }
